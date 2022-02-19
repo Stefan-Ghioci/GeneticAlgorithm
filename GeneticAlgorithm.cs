@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace GeneticBoilerplate
 {
-    public abstract class GeneticAlgorithm
+    public abstract class GeneticAlgorithm<T> where T : Individual
     {
         private readonly int _populationSize;
         private readonly int _mutationRate;
@@ -17,7 +17,7 @@ namespace GeneticBoilerplate
             _selectionSize = (int) (selectionPercentage / 100f * populationSize);
         }
 
-        public Individual Run()
+        public T Run()
         {
             var population = GeneratePopulation();
 
@@ -31,15 +31,15 @@ namespace GeneticBoilerplate
             return OrderByFitness(population).First();
         }
 
-        private IEnumerable<Individual> BreedGeneration(IEnumerable<Individual> selectionPool) =>
+        private IEnumerable<T> BreedGeneration(IEnumerable<T> selectionPool) =>
             ParallelEnumerable.Repeat(BreedIndividual(selectionPool), _populationSize);
 
-        private Individual BreedIndividual(IEnumerable<Individual> selectionPool)
+        private T BreedIndividual(IEnumerable<T> selectionPool)
         {
             var father = selectionPool.Random();
             var mother = selectionPool.Random();
 
-            var child = father.Crossover(mother);
+            var child = (T) father.Crossover(mother);
 
             if (Utils.Rand.Next(0, 100) < _mutationRate)
                 child.Mutate();
@@ -47,18 +47,16 @@ namespace GeneticBoilerplate
             return child;
         }
 
-        private OrderedParallelQuery<Individual> OrderByFitness(IEnumerable<Individual> population) =>
-            population.AsParallel().OrderByDescending(individual => individual.Fitness, FitnessComparer);
+        private OrderedParallelQuery<T> OrderByFitness(IEnumerable<T> population) => population.AsParallel()
+            .OrderByDescending(individual => individual.Fitness, FitnessComparer);
 
 
-        private IEnumerable<Individual> GeneratePopulation() =>
-            ParallelEnumerable.Repeat(GenerateIndividual(), _populationSize);
+        private IEnumerable<T> GeneratePopulation() => ParallelEnumerable.Repeat(GenerateIndividual(), _populationSize);
 
-        private IEnumerable<Individual> Select(IEnumerable<Individual> population) =>
-            OrderByFitness(population).Take(_selectionSize);
+        private IEnumerable<T> Select(IEnumerable<T> population) => OrderByFitness(population).Take(_selectionSize);
 
         protected abstract IComparer<IComparable> FitnessComparer { get; }
-        protected abstract Individual GenerateIndividual();
-        protected abstract bool ShouldGenerationTerminate(IEnumerable<Individual> population);
+        protected abstract T GenerateIndividual();
+        protected abstract bool ShouldGenerationTerminate(IEnumerable<T> population);
     }
 }
