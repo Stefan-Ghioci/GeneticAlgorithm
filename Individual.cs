@@ -4,7 +4,7 @@ namespace GeneticBoilerplate
 {
     public abstract class Individual
     {
-        private IComparable _fitness;
+        private IComparable? _fitness;
 
         public IComparable Fitness => _fitness ??= Evaluate();
 

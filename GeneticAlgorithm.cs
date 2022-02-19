@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace GeneticBoilerplate
@@ -23,31 +24,40 @@ namespace GeneticBoilerplate
             do
             {
                 var selectionPool = Select(population);
+                population = BreedGeneration(selectionPool);
+            }
+            while (!ShouldGenerationTerminate(population));
 
-                var generation = new List<Individual>();
-                for (var i = 0; i < _populationSize; i++)
-                {
-                    var father = selectionPool.Random();
-                    var mother = selectionPool.Random();
-
-                    var child = father.Crossover(mother);
-
-                    if (Utils.Rand.Next(0, 100) < _mutationRate)
-                        child.Mutate();
-                }
-
-                population = generation;
-            } while (!ShouldGenerationTerminate(population));
-
-            return population.OrderByDescending(individual => individual.Fitness).First();
+            return OrderByFitness(population).First();
         }
 
+        private IEnumerable<Individual> BreedGeneration(IEnumerable<Individual> selectionPool) =>
+            ParallelEnumerable.Repeat(BreedIndividual(selectionPool), _populationSize);
+
+        private Individual BreedIndividual(IEnumerable<Individual> selectionPool)
+        {
+            var father = selectionPool.Random();
+            var mother = selectionPool.Random();
+
+            var child = father.Crossover(mother);
+
+            if (Utils.Rand.Next(0, 100) < _mutationRate)
+                child.Mutate();
+
+            return child;
+        }
+
+        private OrderedParallelQuery<Individual> OrderByFitness(IEnumerable<Individual> population) =>
+            population.AsParallel().OrderByDescending(individual => individual.Fitness, FitnessComparer);
+
+
         private IEnumerable<Individual> GeneratePopulation() =>
-            Enumerable.Repeat(GenerateIndividual(), _populationSize);
+            ParallelEnumerable.Repeat(GenerateIndividual(), _populationSize);
 
         private IEnumerable<Individual> Select(IEnumerable<Individual> population) =>
-            population.OrderByDescending(individual => individual.Fitness).Take(_selectionSize);
+            OrderByFitness(population).Take(_selectionSize);
 
+        protected abstract IComparer<IComparable> FitnessComparer { get; }
         protected abstract Individual GenerateIndividual();
         protected abstract bool ShouldGenerationTerminate(IEnumerable<Individual> population);
     }
