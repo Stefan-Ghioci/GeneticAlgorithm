@@ -7,11 +7,11 @@ namespace GeneticBoilerplate
 {
     public class PizzaGeneticAlgorithm : GeneticAlgorithm<Pizza>
     {
-        private readonly List<string> _ingredients;
+        private readonly string[] _ingredients;
         private readonly ImmutableHashSet<Client> _clients;
 
         public PizzaGeneticAlgorithm(int populationSize, int mutationRate, int selectionPercentage,
-            List<string> ingredients, ImmutableHashSet<Client> clients, int iterationCount) : base(
+            string[] ingredients, ImmutableHashSet<Client> clients, int iterationCount) : base(
             populationSize, mutationRate, selectionPercentage, iterationCount)
         {
             _ingredients = ingredients;
@@ -27,8 +27,8 @@ namespace GeneticBoilerplate
 
         protected override Pizza GenerateIndividual()
         {
-            var solutionIndex = Utils.Rand.Next(1, _ingredients.Count);
-            var binary = Convert.ToString(solutionIndex, 2).PadLeft(_ingredients.Count, '0');
+            var solutionIndex = StaticRandom.Rand(1, (int) Math.Pow(2, _ingredients.Length));
+            var binary = Convert.ToString(solutionIndex, 2).PadLeft(_ingredients.Length, '0');
 
             return new Pizza(binary, _clients, _ingredients);
         }
@@ -41,14 +41,14 @@ namespace GeneticBoilerplate
     public class Pizza : Individual
     {
         private readonly ImmutableHashSet<Client> _clients;
-        private readonly List<string> _ingredients;
+        private readonly string[] _ingredients;
         public string BinaryRepresentation { get; set; }
 
         public Pizza
         (
             string binaryRepresentation,
             ImmutableHashSet<Client> clients,
-            List<string> ingredients
+            string[] ingredients
         )
         {
             BinaryRepresentation = binaryRepresentation;
@@ -62,11 +62,11 @@ namespace GeneticBoilerplate
             return _clients.Count(client => client.Likes.IsSubsetOf(solution) && !client.Dislikes.Overlaps(solution));
         }
 
-        private HashSet<string> ComputeSolution()
+        public HashSet<string> ComputeSolution()
         {
             var solution = new HashSet<string>();
             for (var i = 0; i < BinaryRepresentation.Length; i++)
-                if (Convert.ToBoolean(BinaryRepresentation[i]))
+                if (Convert.ToBoolean(BinaryRepresentation[i] - '0'))
                     solution.Add(_ingredients[i]);
             return solution;
         }
@@ -86,7 +86,7 @@ namespace GeneticBoilerplate
 
         public override void Mutate()
         {
-            var flipIndex = Utils.Rand.Next(0, BinaryRepresentation.Length);
+            var flipIndex = StaticRandom.Rand(0, BinaryRepresentation.Length);
 
             var array = BinaryRepresentation.ToCharArray();
             array[flipIndex] = array[flipIndex] == '0' ? '1' : '0';
