@@ -9,22 +9,27 @@ namespace GeneticBoilerplate
         private readonly int _populationSize;
         private readonly int _mutationRate;
         private readonly int _selectionSize;
+        private readonly int _iterationCount;
+        private int _currentIteration;
 
-        protected GeneticAlgorithm(int populationSize, int mutationRate, int selectionPercentage)
+        protected GeneticAlgorithm(int populationSize, int mutationRate, int selectionPercentage, int iterationCount)
         {
             _populationSize = populationSize;
             _mutationRate = mutationRate;
             _selectionSize = (int) (selectionPercentage / 100f * populationSize);
+            _iterationCount = iterationCount;
         }
 
         public T Run()
         {
             var population = GeneratePopulation();
 
+            _currentIteration = 0;
             do
             {
                 var selectionPool = Select(population);
                 population = BreedGeneration(selectionPool);
+                _currentIteration += 1;
             }
             while (!ShouldGenerationTerminate(population));
 
@@ -47,7 +52,7 @@ namespace GeneticBoilerplate
             return child;
         }
 
-        private OrderedParallelQuery<T> OrderByFitness(IEnumerable<T> population) => population.AsParallel()
+        protected OrderedParallelQuery<T> OrderByFitness(IEnumerable<T> population) => population.AsParallel()
             .OrderByDescending(individual => individual.Fitness, FitnessComparer);
 
 
@@ -57,6 +62,8 @@ namespace GeneticBoilerplate
 
         protected abstract IComparer<IComparable> FitnessComparer { get; }
         protected abstract T GenerateIndividual();
-        protected abstract bool ShouldGenerationTerminate(IEnumerable<T> population);
+
+        protected virtual bool ShouldGenerationTerminate(IEnumerable<T> population) =>
+            _iterationCount >= _currentIteration;
     }
 }
