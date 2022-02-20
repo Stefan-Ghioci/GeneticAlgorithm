@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace GeneticBoilerplate
 {
@@ -29,15 +31,21 @@ namespace GeneticBoilerplate
             {
                 var selectionPool = Select(population);
                 population = BreedGeneration(selectionPool);
+                
                 _currentIteration += 1;
+                Console.WriteLine($"Iteration: {_currentIteration}");
             }
             while (!ShouldGenerationTerminate(population));
 
             return OrderByFitness(population).First();
         }
 
-        private IEnumerable<T> BreedGeneration(IEnumerable<T> selectionPool) =>
-            ParallelEnumerable.Repeat(BreedIndividual(selectionPool), _populationSize);
+        private IEnumerable<T> BreedGeneration(IEnumerable<T> selectionPool)
+        {
+            var generation = new ConcurrentBag<T>();
+            Parallel.For(0, _populationSize, _ => generation.Add(BreedIndividual(selectionPool)));
+            return generation;
+        }
 
         private T BreedIndividual(IEnumerable<T> selectionPool)
         {
@@ -56,7 +64,12 @@ namespace GeneticBoilerplate
             .OrderByDescending(individual => individual.Fitness, FitnessComparer);
 
 
-        private IEnumerable<T> GeneratePopulation() => ParallelEnumerable.Repeat(GenerateIndividual(), _populationSize);
+        private IEnumerable<T> GeneratePopulation()
+        {
+            var population = new ConcurrentBag<T>();
+            Parallel.For(0, _populationSize, _ => population.Add(GenerateIndividual()));
+            return population;
+        }
 
         private IEnumerable<T> Select(IEnumerable<T> population) => OrderByFitness(population).Take(_selectionSize);
 
@@ -64,6 +77,6 @@ namespace GeneticBoilerplate
         protected abstract T GenerateIndividual();
 
         protected virtual bool ShouldGenerationTerminate(IEnumerable<T> population) =>
-            _iterationCount >= _currentIteration;
+            _iterationCount <= _currentIteration;
     }
 }
