@@ -46,7 +46,7 @@ namespace GeneticBoilerplate
 
             var child = (T) father.Crossover(mother);
 
-            if (Utils.Rand.Next(0, 100) < _mutationRate)
+            if (StaticRandom.Rand(0, 100) < _mutationRate)
                 child.Mutate();
 
             return child;
